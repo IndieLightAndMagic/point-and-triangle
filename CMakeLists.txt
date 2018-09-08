@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(ROOT_ROOT ${CMAKE_SOURCE_DIR}/../..)
 
 
-get_filename_component(3RD_INCLUDE ${CMAKE_SOURCE_DIR}/3rd/include/SDL2 ABSOLUTE)
+get_filename_component(3RD_INCLUDE ${CMAKE_SOURCE_DIR}/3rd/include/ ABSOLUTE)
 get_filename_component(3RD_LIBRARY ${CMAKE_SOURCE_DIR}/3rd/lib ABSOLUTE)
 
 get_filename_component(SDL_DISTRO_INCLUDE ${ROOT_ROOT}/SDL/include ABSOLUTE)
