@@ -10,7 +10,8 @@ SDL_Window* pWindow;
 SDL_Renderer* pRenderer;
 constexpr int WindowWidth = 1200;
 constexpr int WindowHeight = 800;
-glm::vec2* ppx{nullptr};
+glm::vec3* ppx{nullptr};
+
 void GetMouseStateNormalCoordinates(){
 
     int x,y;
@@ -18,6 +19,7 @@ void GetMouseStateNormalCoordinates(){
 
     ppx->x = x;
     ppx->y = y;
+    ppx->z = 0;
     ppx->x /= WindowWidth;
     ppx->y /= WindowHeight;
 
@@ -58,10 +60,10 @@ float CalcInvDenominator(
  */
 bool IsItPiInABCTrianle(
 
-    const glm::vec2& pi, 
-    const glm::vec2& A, 
-    const glm::vec2& AB, 
-    const glm::vec2& AC, 
+    const glm::vec3& pi, 
+    const glm::vec3& A, 
+    const glm::vec3& AB, 
+    const glm::vec3& AC, 
     const float& AB2, 
     const float& Apert, 
     const float& AC2, 
@@ -79,7 +81,7 @@ bool IsItPiInABCTrianle(
 
 }
 
-void RenderLine(glm::vec2& p0, glm::vec2& p1){
+void RenderLine(glm::vec3& p0, glm::vec3& p1){
 
     glm::ivec2 ip0{p0.x * WindowWidth, p0.y * WindowHeight};
     glm::ivec2 ip1{p1.x * WindowWidth, p1.y * WindowHeight};
@@ -125,6 +127,17 @@ void MainLoop(){
     auto quit = false;
     SDL_Event e{};
 
+    
+    
+    glm::vec3 p1{0.0f, 0.0f, 0.0f};
+    glm::vec3 p2{0.0f, 0.0f, 0.0f};
+    glm::vec3 p3{0.0f, 0.0f, 0.0f};
+    glm::vec3 pi{0.0f, 0.0f, 0.0f};
+    glm::vec3 AB{0.0f, 0.0f, 0.0f};
+    glm::vec3 AC{0.0f, 0.0f, 0.0f};
+    glm::vec3 APi{0.0f, 0.0f, 0.0f};
+
+
     enum class State {
         FIRST_POINT,
         SECOND_POINT,
@@ -133,27 +146,22 @@ void MainLoop(){
     };
 
     State state{State::FIRST_POINT};
+    ppx = &p1;
+
+    /**
+     * The following block is just a placeholder just to understand how each item is calculated. But none of them are valid.
+     */
+    auto AB2        {0.0f};
+    auto Apert      {0.0f};
+    auto dot02      {0.0f};
+    auto AC2        {0.0f};
+    auto dot12      {0.0f};
+    auto invDenom   {0.0f};
+    auto w1         {0.0f};
+    auto w2         {0.0f};
+    auto inTriangle {false};
     
     
-    glm::vec2 p1{0.0f, 0.0f};
-    glm::vec2 p2{0.0f, 0.0f};
-    glm::vec2 p3{0.0f, 0.0f};
-    glm::vec2 pi{0.0f, 0.0f};
-    glm::vec2 AB{0.0f, 0.0f};
-    glm::vec2 AC{0.0f, 0.0f};
-    glm::vec2 APi{0.0f, 0.0f};
-
-    auto AB2        = glm::dot(AB, AB);
-    auto Apert      = glm::dot(AB, AC);
-    auto dot02      = glm::dot(AB, APi);
-    auto AC2        = glm::dot(AC, AC);
-    auto dot12      = glm::dot(AC, APi);
-    auto invDenom   = 1.0f / (AB2 * AC2 - Apert * Apert);
-    auto w1         = (AC2 * dot02 - Apert * dot12) * invDenom;
-    auto w2         = (AB2 * dot12 - Apert * dot02) * invDenom;
-    auto inTriangle = false;
-    ppx             = &p1;
-
     std::cout << "FIRST_POINT: ";
                 
     while (!quit){
@@ -165,7 +173,7 @@ void MainLoop(){
                 quit = true;
                 continue;
 
-            } else if (e.type == SDL_MOUSEBUTTONUP){
+            } else if (e.type == SDL_MOUSEBUTTONUP) {
 
                 GetMouseStateNormalCoordinates();
                 
