@@ -10,17 +10,75 @@ SDL_Window* pWindow;
 SDL_Renderer* pRenderer;
 constexpr int WindowWidth = 1200;
 constexpr int WindowHeight = 800;
+glm::vec2* ppx{nullptr};
+void GetMouseStateNormalCoordinates(){
 
-bool CalcInTriangle(glm::vec2& pi, glm::vec2& p1, glm::vec2& AB, glm::vec2& AC, float& dot00, float& dot01, float& dot11, float invDenom, float& w1, float& w2){
+    int x,y;
+    SDL_GetMouseState(&x, &y);
 
-    auto v2     = pi - p1;
-    auto dot02  = glm::dot(AB, v2);
-    auto dot12  = glm::dot(AC, v2);
-    w1          = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    w2          = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    ppx->x = x;
+    ppx->y = y;
+    ppx->x /= WindowWidth;
+    ppx->y /= WindowHeight;
+
+}
+/**
+ * @brief      Calculates the inv denominator of a ABC triangle.
+ *
+ * @param[in]  AB2    Square Length of side AB.
+ * @param[in]  AC2    Square Length of side AC.
+ * @param[in]  Apert  Aperture and projection of AB and AC (Dot (AB, AC) )
+ *
+ * @return     A float representing the inverse of ABC Triangle Denominator.
+ */
+float CalcInvDenominator(
+    float AB2, 
+    float AC2, 
+    float Apert){
+
+    return 1.0f / (AB2 * AC2 - Apert * Apert);
+
+}
+
+/**
+ * @brief      Calculates if a Point described by vector pi is inside Triangle A,B,C.  
+ *
+ * @param      pi        Vector to Point to test (SC: screen coordinates)
+ * @param      A         Vector to Point A of the triangle (SC)         
+ * @param      AB        Vector going from point A to point B in the triangle, <B-A>
+ * @param      AC        Vector going from point A to point C in the triangle, <C-A>
+ * @param      AB2       Square Length of side AB.
+ * @param      Apert     Aperture and projection of AB and AC (Dot (AB, AC) )
+ * @param      AC2       Square Length of side AC.
+ * @param[in]  invDenom  The inv denominator
+ * @param      w1        The w 1
+ * @param      w2        The w 2
+ *
+ * @return     If pi is in triangle return true, otherwise return false.
+ */
+bool IsItPiInABCTrianle(
+
+    const glm::vec2& pi, 
+    const glm::vec2& A, 
+    const glm::vec2& AB, 
+    const glm::vec2& AC, 
+    const float& AB2, 
+    const float& Apert, 
+    const float& AC2, 
+    const float invDenom, 
+    float& w1, 
+    float& w2){
+
+    auto APi    = pi - A;
+    auto dot02  = glm::dot(AB, APi);
+    auto dot12  = glm::dot(AC, APi);
+    w1          = (AC2 * dot02 - Apert * dot12) * invDenom;
+    w2          = (AB2 * dot12 - Apert * dot02) * invDenom;
 
     return (w1 >= 0) && (w2 >= 0) && (w1 + w2 < 1.0f);
+
 }
+
 void RenderLine(glm::vec2& p0, glm::vec2& p1){
 
     glm::ivec2 ip0{p0.x * WindowWidth, p0.y * WindowHeight};
@@ -81,20 +139,20 @@ void MainLoop(){
     glm::vec2 p2{0.0f, 0.0f};
     glm::vec2 p3{0.0f, 0.0f};
     glm::vec2 pi{0.0f, 0.0f};
-    glm::vec2 v0{0.0f, 0.0f};
-    glm::vec2 v1{0.0f, 0.0f};
-    glm::vec2 v2{0.0f, 0.0f};
+    glm::vec2 AB{0.0f, 0.0f};
+    glm::vec2 AC{0.0f, 0.0f};
+    glm::vec2 APi{0.0f, 0.0f};
 
-    auto dot00      = glm::dot(v0, v0);
-    auto dot01      = glm::dot(v0, v1);
-    auto dot02      = glm::dot(v0, v2);
-    auto dot11      = glm::dot(v1, v1);
-    auto dot12      = glm::dot(v1, v2);
-    auto invDenom   = 1.0f / (dot00 * dot11 - dot01 * dot01);
-    auto w1         = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    auto w2         = (dot00 * dot12 - dot01 * dot02) * invDenom;
+    auto AB2        = glm::dot(AB, AB);
+    auto Apert      = glm::dot(AB, AC);
+    auto dot02      = glm::dot(AB, APi);
+    auto AC2        = glm::dot(AC, AC);
+    auto dot12      = glm::dot(AC, APi);
+    auto invDenom   = 1.0f / (AB2 * AC2 - Apert * Apert);
+    auto w1         = (AC2 * dot02 - Apert * dot12) * invDenom;
+    auto w2         = (AB2 * dot12 - Apert * dot02) * invDenom;
     auto inTriangle = false;
-    glm::vec2* ppx = &p1;
+    ppx             = &p1;
 
     std::cout << "FIRST_POINT: ";
                 
@@ -109,14 +167,8 @@ void MainLoop(){
 
             } else if (e.type == SDL_MOUSEBUTTONUP){
 
-                int x,y;
-                SDL_GetMouseState(&x, &y);
-
-                ppx->x = x;
-                ppx->y = y;
-                ppx->x /= WindowWidth;
-                ppx->y /= WindowHeight;
-
+                GetMouseStateNormalCoordinates();
+                
                 if ( state == State::FIRST_POINT ){
 
                     std::cout << "(" << ppx->x << " , " << ppx->y << ")" << std::endl;
@@ -132,8 +184,8 @@ void MainLoop(){
                     state = State::THIRD_POINT;
                     ppx = &p3;
 
-                    v0 = p2 - p1;
-                    dot00 = glm::dot(v0, v0);
+                    AB  = p2 - p1;
+                    AB2 = glm::dot(AB, AB);
 
 
                 } else if ( state == State::THIRD_POINT){
@@ -143,22 +195,25 @@ void MainLoop(){
                     state = State::CALC_POINT;
                     ppx = &pi;
 
-                    v1          = p3 - p1;
-                    dot01       = glm::dot(v0, v1);
-                    dot11       = glm::dot(v1, v1);
-                    invDenom    = 1.0f / (dot00 * dot11 - dot01 * dot01);
-
+                    AC          = p3 - p1;
+                    Apert       = glm::dot(AB, AC);
+                    AC2         = glm::dot(AC, AC);
+                    invDenom    = CalcInvDenominator(AB2, AC2, Apert);
 
                 } else if ( state == State::CALC_POINT){
 
-
-                    inTriangle = CalcInTriangle(pi, p1, v0, v1, dot00, dot01, dot11, invDenom, w1, w2);
+                    inTriangle = IsItPiInABCTrianle(pi, p1, AB, AC, AB2, Apert, AC2, invDenom, w1, w2);
                     if( inTriangle ){
                         std::cout << "In " << w1 << " , " << w2 << "\n";
                     } else {
                         std::cout << "Out " << w1 << " , " << w2 << "\n";
                     }
                 }
+
+            } else if (e.type == SDL_MOUSEMOTION && state == State::CALC_POINT){
+
+                GetMouseStateNormalCoordinates();
+                inTriangle = IsItPiInABCTrianle(pi, p1, AB, AC, AB2, Apert, AC2, invDenom, w1, w2);
 
             } else if (e.type == SDL_KEYDOWN) {
 
